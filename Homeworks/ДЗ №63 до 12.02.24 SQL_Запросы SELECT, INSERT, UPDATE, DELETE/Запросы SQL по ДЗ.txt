@@ -1,0 +1,118 @@
+/*Добавить данные в БД - пример*/
+INSERT INTO Hospital([ID patient], FirstFamilyName, FirstName, Patronymic, BirthDate, ReceiptDate, WardName, DoctorName, Diagnosis)
+VALUES (11, 'Vajnov', 'Valery', 'Ivanovich', '2001-08-23', '2024-02-03', 'Surgical', 'SidorovSS', 'Appendicitis')
+INSERT INTO Hospital([ID patient], FirstFamilyName, FirstName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis)
+VALUES (12, 'Lenin', 'Vladimyr', 'Ilyich', '1870-04-22', '2024-01-03', '2024-02-05', 'Surgical', 'IvanovPP', 'Stroke')
+...
+==================================================================
+
+/*создание резервной копии*/
+по DBHospital (нужная база данных) правой кнопкой мыши -> Tasks -> BackUp -> Full -> Ok
+
+/*вывести информацию обо всех пациентах, находящихся в больнице*/
+Select [ID patient], FirstFamilyName, FirstName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis
+FROM Hospital
+
+или так:
+Select *
+FROM Hospital
+
+или так:
+Select TOP 1000 Rows на таблице правой кнопкой мыши
+
+==================================================================
+
+/*показать данные о пациентах, которые лежат в определенном отделении*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis
+FROM Hospital
+WHERE WardName = 'Cardiology'
+
+==================================================================
+
+/*вывести названия всех отделений больницы (неповторяющиеся)*/
+SELECT DISTINCT WardName
+FROM Hospital
+
+==================================================================
+
+/*получить данные о пациентах, которые лежат в больнице больше
+месяца, отсортировав их по возрастанию даты поступления*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis
+FROM Hospital
+WHERE ReceiptDate <= DATEADD(MONTH, -1, GETDATE())
+AND DischargeDate IS NULL
+ORDER BY ReceiptDate ASC
+
+==================================================================
+
+/*вывести информацию о пациентах, которые были выписаны в прошлом месяце*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis
+FROM Hospital
+WHERE MONTH(DischargeDate) = MONTH(DATEADD(MONTH, -1, GETDATE()))
+AND YEAR(DischargeDate) = YEAR(GETDATE())
+
+==================================================================
+
+/*показать информацию о пациентах, которые лежали в больнице с
+октября по декабрь прошлого года в определенном отделении*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis
+FROM Hospital
+WHERE MONTH(ReceiptDate) = 10
+AND MONTH(DischargeDate) = 12
+AND YEAR(DischargeDate) = YEAR(DATEADD(YEAR, -1, GETDATE()))
+AND WardName = 'Gynaecological'
+
+==================================================================
+
+/*вывести информацию о самом молодом пациенте и его возраст*/
+SELECT TOP 1 [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis,
+DATEDIFF(YEAR, BirthDate, GETDATE()) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, BirthDate, GETDATE()), BirthDate) > GETDATE() THEN 1 ELSE 0 END AS Age
+FROM Hospital
+ORDER BY BirthDate DESC;
+
+==================================================================
+
+/*получить информацию о пациентах, которые лежат в любых трех отделениях;*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis 
+FROM Hospital
+WHERE WardName IN ('Cardiology', 'Therapeutic', 'Traumatological')
+ORDER BY WardName, ReceiptDate;
+
+==================================================================
+
+/*показать всех пациентов, фамилия которых начинается на букву Р*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis 
+FROM Hospital
+WHERE FirstFamilyName LIKE 'P%'
+ORDER BY FullName;
+
+==================================================================
+
+/*вывести данные о пациентах с одинаковыми заболеваниями, которых лечит один врач*/
+SELECT [ID patient], FirstFamilyName + ' ' + FirstName AS FullName, Patronymic, BirthDate, ReceiptDate, DischargeDate, WardName, DoctorName, Diagnosis 
+FROM Hospital
+WHERE DoctorName IN (
+    SELECT DoctorName
+    FROM Hospital
+    GROUP BY DoctorName, Diagnosis
+    HAVING COUNT(*) > 1
+)
+ORDER BY DoctorName, Diagnosis;
+
+==================================================================
+
+/*переименовать название определенного отделения*/
+UPDATE Hospital
+SET WardName = 'General Medicine'
+WHERE WardName = 'Therapeutic';
+
+==================================================================
+
+/*удалить всех пациентов, которые были выписаны больше чем полгода назад.*/
+DELETE FROM Hospital
+WHERE DischargeDate <= DATEADD(MONTH, -6, GETDATE());
+
+==================================================================
+
+/*Восстановление базы данных из резервной копии*/
+по Databases (корень дерева после сервера) правой кнопкой мыши -> Restore Database -> Device -> DBHospital (выбрать свою) -> Ок 
