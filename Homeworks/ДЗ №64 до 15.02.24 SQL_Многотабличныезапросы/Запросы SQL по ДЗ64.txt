@@ -1,0 +1,90 @@
+/*Информация обо всех пациентах*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID;
+
+/*Информация обо всех пациентах, которые в настоящий момент в больнице*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND Hospital.DischargeDate IS NULL;
+
+/*Данные о пациентах, которые лежат в определенном отделении*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND Hospital.DischargeDate IS NULL
+AND WardNames.WardName = 'Dental';
+
+/*получить данные о пациентах, которые лежат в больнице больше месяца, отсортировав их по возрастанию даты
+поступления*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND Hospital.DischargeDate IS NULL
+AND Hospital.ReceiptDate <= DATEADD(MONTH, -1, GETDATE())
+ORDER BY Hospital.ReceiptDate ASC;
+
+/*вывести информацию о пациентах, которые были выписаны в
+прошлом месяце*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND MONTH(Hospital.DischargeDate) = MONTH(DATEADD(MONTH, -1, GETDATE()))
+AND YEAR(Hospital.DischargeDate) = YEAR(GETDATE());
+
+/*показать информацию о пациентах, которые лежали в
+больнице с октября по декабрь прошлого года в определенном
+отделении*/
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND MONTH(Hospital.ReceiptDate) = 10
+AND MONTH(Hospital.DischargeDate) = 12
+AND YEAR(Hospital.DischargeDate) = YEAR(DATEADD(YEAR, -1, GETDATE()))
+AND WardNames.WardName = 'Gynaecology';
+
+/*данные о пациентах, которых лечит определенный
+врач с одинаковыми заболеваниями*/
+
+SELECT Hospital.FirstFamilyName + ' ' + Hospital.FirstName + ' ' + Hospital.Patronymic AS [FullName patient], Hospital.BirthDate, Hospital.ReceiptDate, Hospital.DischargeDate, 
+Diagnoses.Diagnosis, Doctors.DoctorFamilyName + ' ' + Doctors.DoctorName + ' ' + Doctors.DoctorPatronymic AS Doctor, WardNames.WardName
+/*, [ID patient], Diagnoses.[ID Diagnosis], Doctors.[ID doctor] */
+FROM Diagnoses, Doctors, Hospital, WardNames, DiagnosesDoctors
+WHERE Hospital.DiagnosisId = Diagnoses.[ID Diagnosis] 
+AND Doctors.[ID doctor] = DiagnosesDoctors.DoctorsId
+AND Diagnoses.[ID Diagnosis] = DiagnosesDoctors.DiagnosisID 
+AND WardNames.[ID WardName] = Diagnoses.WardNameID
+AND Doctors.DoctorFamilyName = 'Ivanov'
+AND Diagnoses.Diagnosis = 'Hypertension';
+
