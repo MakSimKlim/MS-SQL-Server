@@ -1,0 +1,52 @@
+/*количество инструкторов по каждой секции*/
+SELECT s.SectionName, COUNT(DISTINCT t.[ID trainer]) as NumberOfTrainers
+FROM Trainers t, TrainerSection ts, Sections s
+WHERE t.[ID trainer] = ts.TrainerID AND ts.SectionID = s.[ID section]
+GROUP BY s.SectionName;
+
+/*количество людей, которые должны заниматься в определенный момент времени в каждой секции*/
+SELECT s.SectionName, COUNT(fc.[ID visitor]) as NumberOfVisitors
+FROM FitnessClub fc, Sections s, Branches b, VisitSchedules vs, StartTimes st
+WHERE fc.SectionID = s.[ID section] 
+AND s.BranchID = b.[ID branch] 
+AND b.VisitScheduleID = vs.[ID visit schedule] 
+AND vs.StartTimeID = st.[ID start time] 
+AND st.StartTime = '13:00'
+GROUP BY s.SectionName;
+
+/*количество посетителей, у которых фамилия совпадает с
+фамилиями из определенного списка*/
+SELECT COUNT(*) as NumberOfVisitors
+FROM FitnessClub
+WHERE FirstFamilyName IN ('Gudz', 'Klimov', 'Petrov');
+
+/*количество людей с одинаковыми именами, которых
+занимаются у определенного инструктора*/
+SELECT fc.FirstName, COUNT(*) as NumberOfVisitors
+FROM FitnessClub fc, TrainerSection ts, Trainers t
+WHERE fc.SectionID = ts.SectionID 
+AND ts.TrainerID = t.[ID trainer] 
+AND t.TrainerFamilyName = 'Ivanov'
+GROUP BY fc.FirstName
+HAVING COUNT(*) > 1;
+
+/*информация о людях, которые посетили фитнес зал минимальное количество раз*/
+SELECT *
+FROM FitnessClub
+WHERE NumberOfVisits = (SELECT MIN(NumberOfVisits) FROM FitnessClub);
+
+/*количество посетителей, которые занимались в определенной секции за первую половину текущего года*/
+SELECT COUNT(*) as NumberOfVisitors
+FROM FitnessClub fc, Sections s
+WHERE fc.SectionID = s.[ID section] 
+AND s.SectionName = 'Yoga' 
+AND fc.RegistrationDate 
+BETWEEN '2024-01-01' 
+AND DATEADD(day, fc.NumberOfVisits, '2024-01-01');
+
+/*общее количество людей, посетивших фитнес зал за прошлый год. каждый посетитель следует своему графику посещений (3 раза в неделю) без пропусков, начиная с даты регистрации*/
+/*общее количество людей, посетивших фитнес зал за прошлый год. каждый посетитель следует своему графику посещений (3 раза в неделю) без пропусков, начиная с даты регистрации*/
+SELECT COUNT(DISTINCT [ID visitor]) as NumberOfVisitors
+FROM [dbo].[FitnessClub]
+WHERE DATEADD(week, ([NumberOfVisits] / 3), [RegistrationDate]) BETWEEN DATEADD(year, -1, GETDATE()) AND GETDATE();
+
