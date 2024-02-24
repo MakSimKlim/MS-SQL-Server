@@ -1,0 +1,127 @@
+ДЗ №67 до 22.02.24 SQL_Объединения
+
+=================================================================
+/*Вывести названия и вместимости палат, расположенных в 5-м корпусе,
+вместимостью 5 и более мест, если в этом корпусе есть хотя бы одна палата
+вместимостью более 15 мест*/
+SELECT Wards.Name, Wards.Places
+FROM Wards
+JOIN Departments ON Wards.DepartmentId = Departments.Id
+WHERE Departments.Building = '5'
+AND Wards.Places >= 5
+AND EXISTS (
+    SELECT 1
+    FROM Wards w2
+    JOIN Departments d2 ON w2.DepartmentId = d2.Id
+    WHERE d2.Building = '5' AND w2.Places > 15
+);
+
+=================================================================
+/*Вывести названия отделений в которых проводилось хотя бы одно
+обследование за последнюю неделю*/
+SELECT DISTINCT Departments.Name
+FROM Departments
+JOIN Wards ON Departments.Id = Wards.DepartmentId
+JOIN DoctorsExaminations ON Wards.Id = DoctorsExaminations.WardId
+WHERE DoctorsExaminations.Date >= DATEADD(WEEK, -1, GETDATE());
+
+=================================================================
+/*Вывести названия заболеваний, для которых не проводятся обследования*/
+SELECT Diseases.Name
+FROM Diseases
+LEFT JOIN DoctorsExaminations ON Diseases.Id = DoctorsExaminations.DiseaseId
+WHERE DoctorsExaminations.DiseaseId IS NULL;
+
+=================================================================
+/*Вывести полные имена врачей, которые не проводят обследования*/
+SELECT CONCAT(Doctors.Name, ' ', Doctors.Surname) AS FullName
+FROM Doctors
+LEFT JOIN DoctorsExaminations ON Doctors.Id = DoctorsExaminations.DoctorId
+WHERE DoctorsExaminations.DoctorId IS NULL;
+
+=================================================================
+/*Вывести названия отделений, в которых не проводятся обследования*/
+SELECT Departments.Name
+FROM Departments
+LEFT JOIN Wards ON Departments.Id = Wards.DepartmentId
+LEFT JOIN DoctorsExaminations ON Wards.Id = DoctorsExaminations.WardId
+GROUP BY Departments.Name
+HAVING COUNT(DoctorsExaminations.Id) = 0;
+
+=================================================================
+/*Вывести фамилии врачей, которые являются интернами*/
+SELECT Doctors.Surname
+FROM Doctors
+JOIN Interns ON Doctors.Id = Interns.DoctorId;
+
+=================================================================
+/*Вывести фамилии интернов, ставки которых больше, чем ставка хотя бы одного из врачей*/
+SELECT Doctors.Surname
+FROM Doctors
+JOIN Interns ON Doctors.Id = Interns.DoctorId
+WHERE EXISTS (
+    SELECT 1
+    FROM Doctors D2
+    WHERE Doctors.Salary > D2.Salary
+);
+
+
+=================================================================
+/*Вывести названия палат, чья вместимость больше, чем вместимость
+каждой палаты, находящейся в 3-м корпусе*/
+SELECT W1.Name
+FROM Wards W1
+JOIN Departments D1 ON W1.DepartmentId = D1.Id
+WHERE W1.Places > ALL (
+    SELECT W2.Places
+    FROM Wards W2
+    JOIN Departments D2 ON W2.DepartmentId = D2.Id
+    WHERE D2.Building = '3'
+);
+
+=================================================================
+/*Вывести фамилии врачей, проводящих обследования в отделениях
+“Ophthalmology” и “Physiotherapy”*/
+SELECT DISTINCT Doctors.Surname
+FROM Doctors
+JOIN DoctorsExaminations ON Doctors.Id = DoctorsExaminations.DoctorId
+JOIN Wards ON DoctorsExaminations.WardId = Wards.Id
+JOIN Departments ON Wards.DepartmentId = Departments.Id
+WHERE Departments.Name IN ('Ophthalmology', 'Physiotherapy');
+
+=================================================================
+/*Вывести названия отделений, в которых работают интерны и профессоры*/
+SELECT DISTINCT Departments.Name
+FROM Departments
+JOIN Wards ON Departments.Id = Wards.DepartmentId
+JOIN DoctorsExaminations ON Wards.Id = DoctorsExaminations.WardId
+JOIN Doctors ON DoctorsExaminations.DoctorId = Doctors.Id
+WHERE EXISTS (
+    SELECT 1
+    FROM Interns
+    WHERE Interns.DoctorId = Doctors.Id
+) AND EXISTS (
+    SELECT 1
+    FROM Professors
+    WHERE Professors.DoctorId = Doctors.Id
+);
+
+=================================================================
+/*Вывести название отделения, в котором проводит обследования врач с наибольшей ставкой*/
+SELECT Departments.Name
+FROM Departments
+JOIN Wards ON Departments.Id = Wards.DepartmentId
+JOIN DoctorsExaminations ON Wards.Id = DoctorsExaminations.WardId
+JOIN Doctors ON DoctorsExaminations.DoctorId = Doctors.Id
+WHERE Doctors.Salary = (
+    SELECT MAX(Salary)
+    FROM Doctors
+);
+
+=================================================================
+/*Вывести названия заболеваний и количество проводимых по ним
+обследований*/
+SELECT Diseases.Name, COUNT(DoctorsExaminations.Id) AS ExaminationCount
+FROM Diseases
+LEFT JOIN DoctorsExaminations ON Diseases.Id = DoctorsExaminations.DiseaseId
+GROUP BY Diseases.Name;
