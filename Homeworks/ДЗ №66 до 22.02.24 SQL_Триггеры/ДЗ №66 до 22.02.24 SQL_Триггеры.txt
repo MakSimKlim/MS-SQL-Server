@@ -1,0 +1,171 @@
+ДЗ №66 до 22.02.24 SQL_Триггеры
+
+======================================================================
+
+/*При продаже товара, заносить информацию о продаже в таблицу
+«История».*/
+CREATE TRIGGER trg_AfterSale_InsertIntoHistory
+ON Sales
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO SalesHistory (ProductID, SalePrice, Quantity, SaleDate, EmployeeID, CustomerID)
+    SELECT i.ProductID, i.SalePrice, i.Quantity, i.SaleDate, i.EmployeeID, i.CustomerID
+    FROM inserted i;
+END;
+
+======================================================================
+/*Если после продажи товара не осталось ни одной единицы данного
+товара, необходимо перенести информацию о полностью проданном
+товаре в таблицу «Архив»*/
+CREATE TRIGGER trg_AfterSale_InsertIntoArchive
+ON Sales
+AFTER INSERT
+AS
+BEGIN
+    -- Проверяем, остался ли товар на складе
+    DECLARE @ProductID int;
+    SELECT @ProductID = ProductID FROM inserted;
+    IF (SELECT QuantityInStock FROM Products WHERE ProductID = @ProductID) = 0
+    BEGIN
+        -- Если товара не осталось, переносим информацию о нем в таблицу Архив
+        INSERT INTO Архив (ProductID, ProductName, ProductType, Manufacturer, SalePrice)
+        SELECT ProductID, ProductName, ProductType, Manufacturer, SalePrice FROM Products WHERE ProductID = @ProductID;
+
+        -- Удаляем товар из таблицы Products
+        DELETE FROM Products WHERE ProductID = @ProductID;
+    END
+END;
+
+======================================================================
+
+/*Не позволять регистрировать уже существующего клиента. При вставке
+проверять наличие клиента по ФИО и email*/
+CREATE TRIGGER trg_BeforeCustomer_Insert
+ON Customers
+INSTEAD OF INSERT
+AS
+BEGIN
+    -- Проверяем, существует ли уже клиент с таким же ФИО и email
+    IF EXISTS (SELECT 1 FROM Customers WHERE FullName IN (SELECT FullName FROM inserted) AND Email IN (SELECT Email FROM inserted))
+    BEGIN
+        -- Если такой клиент уже существует, выводим сообщение об ошибке и отменяем операцию INSERT
+        RAISERROR ('Клиент с таким ФИО и email уже существует.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        -- Если такого клиента еще нет, выполняем операцию INSERT как обычно
+        INSERT INTO Customers
+        SELECT * FROM inserted;
+    END
+END;
+
+======================================================================
+
+/*Запретить удаление существующих клиентов*/
+
+CREATE TRIGGER trg_BeforeCustomer_Delete
+ON Customers
+INSTEAD OF DELETE
+AS
+BEGIN
+    -- Выводим сообщение об ошибке и отменяем операцию DELETE
+    RAISERROR ('Удаление существующих клиентов запрещено.', 16, 1);
+END;
+
+======================================================================
+
+/*Запретить удаление сотрудников, принятых на работу до 2020 года*/
+
+CREATE TRIGGER trg_BeforeEmployee_Delete
+ON Employees
+INSTEAD OF DELETE
+AS
+BEGIN
+    -- Проверяем, был ли сотрудник принят на работу до 2020 года
+    IF EXISTS (SELECT 1 FROM deleted WHERE YEAR(HireDate) < 2020)
+    BEGIN
+        -- Если сотрудник был принят на работу до 2020 года, выводим сообщение об ошибке и отменяем операцию DELETE
+        RAISERROR ('Удаление сотрудников, принятых на работу до 2020 года, запрещено.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        -- Если сотрудник был принят на работу в 2020 году или позже, выполняем операцию DELETE как обычно
+        DELETE FROM Employees WHERE EmployeeID IN (SELECT EmployeeID FROM deleted);
+    END
+END;
+
+======================================================================
+
+/*При новой покупке товара нужно проверять общую сумму покупок
+клиента. Если сумма превысила 20000 руб, необходимо установить
+процент скидки в 15%*/
+
+CREATE TRIGGER trg_AfterSale_UpdateDiscount
+ON Sales
+AFTER INSERT
+AS
+BEGIN
+    -- Вычисляем общую сумму покупок клиента
+    DECLARE @CustomerID int;
+    SELECT @CustomerID = CustomerID FROM inserted;
+    DECLARE @TotalAmount money;
+    SELECT @TotalAmount = SUM(SalePrice * Quantity) FROM Sales WHERE CustomerID = @CustomerID;
+
+    -- Если общая сумма покупок превышает 20000 рублей, устанавливаем процент скидки в 15%
+    IF @TotalAmount > 20000
+    BEGIN
+        UPDATE Customers SET DiscountRate = 0.15 WHERE CustomerID = @CustomerID;
+    END
+END;
+
+======================================================================
+
+/*Запретить добавлять товар конкретной фирмы. Например, товары фирмы
+"Спорт", "Солнце" и "Штанга"*/
+
+CREATE TRIGGER trg_BeforeProduct_Insert
+ON Products
+INSTEAD OF INSERT
+AS
+BEGIN
+    -- Проверяем, является ли производитель товара одной из запрещенных фирм
+    IF EXISTS (SELECT 1 FROM inserted WHERE Manufacturer IN ('Спорт', 'Солнце', 'Штанга'))
+    BEGIN
+        -- Если это так, выводим сообщение об ошибке и отменяем операцию INSERT
+        RAISERROR ('Добавление товаров фирм "Спорт", "Солнце" и "Штанга" запрещено.', 16, 1);
+    END
+    ELSE
+    BEGIN
+        -- Если производитель товара не является одной из запрещенных фирм, выполняем операцию INSERT как обычно
+        INSERT INTO Products
+        SELECT * FROM inserted;
+    END
+END;
+
+======================================================================
+
+/*При продаже проверять количество товара в наличии.Если осталась
+одна единица товара, необходимо внести информацию об этом товаре в
+таблицу «Последняя Единица».*/
+
+CREATE TRIGGER trg_AfterSale_InsertIntoLastUnit
+ON Sales
+AFTER INSERT
+AS
+BEGIN
+    -- Вычисляем количество товара в наличии после продажи
+    DECLARE @ProductID int;
+    SELECT @ProductID = ProductID FROM inserted;
+    DECLARE @QuantityInStock int;
+    SELECT @QuantityInStock = QuantityInStock FROM Products WHERE ProductID = @ProductID;
+
+    -- Если осталась только одна единица товара, вносим информацию об этом товаре в таблицу Последняя Единица
+    IF @QuantityInStock = 1
+    BEGIN
+        INSERT INTO ПоследняяЕдиница (ProductID)
+        VALUES (@ProductID);
+    END
+END;
+
+
