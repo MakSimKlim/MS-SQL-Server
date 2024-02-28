@@ -1,0 +1,147 @@
+ДЗ №69 до 29.02.24 SQL_Пользовательские функции
+
+/*Пользовательская функция возвращае тприветствие в стиле «Hello,
+ИМЯ!», где ИМЯ передаётся в качестве параметра. Например, если
+передали Nick, то будет Hello, Nick!*/
+
+CREATE FUNCTION dbo.fn_SayHello (@name NVARCHAR(50))
+RETURNS NVARCHAR(255) AS
+BEGIN
+    DECLARE @greeting NVARCHAR(255);
+    SET @greeting = N'Hello, ' + @name + N'!';
+    RETURN @greeting;
+END;
+
+SELECT dbo.fn_SayHello('Nick') AS Name;
+
+--==================================================================
+
+/*Пользовательская функция возвращает информацию о текущем
+количестве минут.*/
+
+CREATE FUNCTION dbo.fn_GetCurrentMinute()
+RETURNS TABLE
+AS
+RETURN 
+SELECT DATEPART(MINUTE, GETDATE()) AS CurrentMinute;
+
+
+SELECT CurrentMinute FROM dbo.fn_GetCurrentMinute();
+
+--==================================================================
+
+/*Пользовательская функция возвращает информацию о текущем годе*/
+
+CREATE FUNCTION dbo.fn_GetCurrentYear()
+RETURNS TABLE
+AS
+RETURN 
+SELECT DATEPART(YEAR, GETDATE()) AS CurrentYear;
+
+SELECT CurrentYear FROM dbo.fn_GetCurrentYear();
+
+--==================================================================
+
+/*Пользовательская функция возвращает информацию о том: високосный
+или нет*/
+
+/*Первый вариант расчета*/
+CREATE FUNCTION dbo.fn_IsLeapYear()
+RETURNS TABLE
+AS
+RETURN 
+SELECT CASE 
+           WHEN (DATEPART(YEAR, GETDATE()) % 4 = 0 AND DATEPART(YEAR, GETDATE()) % 100 != 0) 
+		   OR DATEPART(YEAR, GETDATE()) % 400 = 0 
+           THEN 'Yes' 
+           ELSE 'No' 
+       END AS IsLeapYear;
+	   	   
+SELECT IsLeapYear FROM dbo.fn_IsLeapYear();
+
+/*Второй вариант функции*/
+CREATE FUNCTION dbo.fn_IsLeapYear2()
+RETURNS TABLE
+AS
+RETURN 
+SELECT CASE 
+           WHEN DAY(EOMONTH(DATEFROMPARTS(DATEPART(YEAR, GETDATE()), 2, 1))) = 29
+           THEN 'Yes' 
+           ELSE 'No' 
+       END AS IsLeapYear;
+
+SELECT IsLeapYear FROM dbo.fn_IsLeapYear2();
+
+--==================================================================
+
+/*Пользовательская функция принимает число и возвращает yes, если
+число простое и no, если число не простое*/
+
+CREATE FUNCTION dbo.fn_IsPrime(@n INT)
+RETURNS NVARCHAR(3)
+AS
+BEGIN
+    DECLARE @i INT = 2;
+    DECLARE @isPrime NVARCHAR(3) = 'Yes';
+
+    WHILE (@i * @i <= @n)
+    BEGIN
+        IF (@n % @i = 0)
+        BEGIN
+            SET @isPrime = 'No';
+            BREAK;
+        END
+        SET @i = @i + 1;
+    END
+
+    RETURN @isPrime;
+END;
+
+SELECT dbo.fn_IsPrime(23) AS IsPrime;
+SELECT dbo.fn_IsPrime(21) AS IsPrime;
+
+-====================================================================
+
+/*Пользовательская функция принимает в качестве параметров пять
+чисел. Возвращает сумму минимального и максимального значения из
+переданных пяти параметров*/
+
+CREATE FUNCTION dbo.fn_MinMaxSum(@num1 INT, @num2 INT, @num3 INT, @num4 INT, @num5 INT)
+RETURNS TABLE
+AS
+RETURN 
+SELECT (MIN(Num) + MAX(Num)) AS MinMaxSum
+FROM (VALUES (@num1), (@num2), (@num3), (@num4), (@num5)) AS Numbers(Num);
+
+SELECT MinMaxSum FROM dbo.fn_MinMaxSum(69, 21, 10, 46, 59);
+
+-====================================================================
+
+/*Пользовательская функция показывает все чётные или нечётные числа
+в переданном диапазоне. Функция принимает три параметра: начало
+диапазона, конец диапазона, какой тип чисел показывать*/
+
+CREATE FUNCTION dbo.fn_GetNumbersInRange(@start INT, @end INT, @type NVARCHAR(10))
+RETURNS @result TABLE (NumberInRange INT)
+AS
+BEGIN
+    DECLARE @i INT;
+    SET @i = @start;
+
+    WHILE (@i <= @end)
+    BEGIN
+        IF ((@type = 'четные' AND @i % 2 = 0) OR (@type = 'нечетные' AND @i % 2 = 1))
+        BEGIN
+            INSERT INTO @result VALUES (@i);
+        END
+        SET @i = @i + 1;
+    END
+
+    RETURN;
+END;
+
+
+SELECT NumberInRange FROM dbo.fn_GetNumbersInRange(1, 10, 'нечетные');
+SELECT NumberInRange FROM dbo.fn_GetNumbersInRange(1, 10, 'четные');
+
+
