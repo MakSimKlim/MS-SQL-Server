@@ -1,0 +1,23 @@
+-- Создание устройства резервного копирования
+EXEC sp_addumpdevice 'disk', 'MyBackupDevice', 'D:\Program Files\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQL\Backup\MyBackup.bak'
+
+EXEC sp_addumpdevice 'disk', 'MyLogBackupDevice', 'D:\Program Files\Microsoft SQL Server\MSSQL15.MSSQLSERVER\MSSQL\Backup\MyBackup_Log.bak'
+
+-- Полное резервное копирование
+BACKUP DATABASE DBFlatSale TO MyBackupDevice WITH FORMAT
+
+-- Резервное копирование журнала транзакций
+BACKUP LOG DBFlatSale TO MyLogBackupDevice
+
+
+-- Восстановление полной резервной копии
+RESTORE DATABASE DBFlatSale FROM MyBackupDevice
+
+-- Восстановление резервной копии журнала транзакций
+RESTORE LOG DBFlatSale FROM MyLogBackupDevice
+
+
+-- Удаление устройства
+exec sp_dropdevice 'MyBackupDevice'
+
+exec sp_dropdevice 'MyLogBackupDevice'
